@@ -4,7 +4,7 @@ int inputPrecision = 500;
 // length must be greater than lg2 of number of functions
 int outputPinsLength = 3;
 int outputPins[3];
-enum Functions pressedFunction = LENGTH;
+enum Functions prevPressedFunction = LENGTH;
 unsigned long pressedTime;
 int analogPin= 0;
 int raw= 0;
@@ -15,27 +15,17 @@ float R2= 0;
 float buffer= 0;
 
 // testing vars
-int SWCPins[LENGTH];
-int currentSWCFunction = LENGTH;
-int SWCSwitchButtonPin = 6;
-int SWCSwitchButtonPrevState = LOW;
 
 void setup()
 {
   Serial.begin(9600);
   // Значения резисторов в мультируле
-  solarisResistances[TUNE_UP] = 330; // 420;
-  solarisResistances[TUNE_DOWN] = 1200; // 1100;
-  solarisResistances[SOURCE] = 2200; // 2100;
-  solarisResistances[MUTE] = 3200; // 3100;
-  solarisResistances[VOLUME_UP] = 4700; // 4600;
-  solarisResistances[VOLUME_DOWN] = 6700; // 6800;
-  SWCPins[TUNE_UP] = 8;
-  SWCPins[TUNE_DOWN] = 9;
-  SWCPins[SOURCE] = 10;
-  SWCPins[MUTE] = 11;
-  SWCPins[VOLUME_UP] = 12;
-  SWCPins[VOLUME_DOWN] = 13;
+  solarisResistances[TUNE_UP] = 420;
+  solarisResistances[TUNE_DOWN] = 1100;
+  solarisResistances[SOURCE] = 2100;
+  solarisResistances[MUTE] = 3100;
+  solarisResistances[VOLUME_UP] = 4600;
+  solarisResistances[VOLUME_DOWN] = 6800;
   for(int i = 0; i<outputPinsLength; i++){
     outputPins[i] = i+2;
     pinMode(outputPins[i], OUTPUT);
@@ -46,22 +36,28 @@ void setup()
 
 void loop()
 {
-  int SWCSwitchButtonState = digitalRead(SWCSwitchButtonPin);
-  if(SWCSwitchButtonPrevState == HIGH && SWCSwitchButtonPrevState != SWCSwitchButtonState){
-    pinMode(SWCPins[currentSWCFunction], INPUT);
-    Serial.print("Switched to input pin ");
-    Serial.println(SWCPins[currentSWCFunction]);
-    if(++currentSWCFunction > LENGTH){
-      currentSWCFunction = 0;
-    }
-    else if(currentSWCFunction != LENGTH){
-      pinMode(SWCPins[currentSWCFunction], OUTPUT);
-      digitalWrite(SWCPins[currentSWCFunction], HIGH);
-      Serial.print("Switched to high output pin ");
-      Serial.println(SWCPins[currentSWCFunction]);
-    }
+  enum Functions pressedFunction = getPressedFunction();
+  if(prevPressedFunction!=LENGTH && prevPressedFunction != pressedFunction){
+
   }
-  SWCSwitchButtonPrevState = SWCSwitchButtonState;
+  // Если кнопку только нажали, запомнить
+  if(pressedFunction == LENGTH){
+    pressedFunction = (Functions)i;
+    pressedTime = millis();
+  }
+
+
+
+  
+  // Если нажали другую кнопку, то выполнить предыдущую функцию
+  else if(pressedFunction != i){
+    execute();
+    pressedFunction = (Functions)i;
+    pressedTime = millis();
+  }
+  break;
+}
+enum Functions getPressedFunction(){
   raw= analogRead(analogPin);
   if(raw)
   {
@@ -73,24 +69,17 @@ void loop()
       int minResistance = solarisResistances[i] - inputPrecision;
       int maxResistance = solarisResistances[i] + inputPrecision;
       if( (R2 > minResistance) && (R2<maxResistance)){
-        // Если кнопку только нажали, запомнить
-        if(pressedFunction == LENGTH){
-          pressedFunction = (Functions)i;
-          pressedTime = millis();
-        }
-        // Если нажали другую кнопку, то выполнить предыдущую функцию
-        else if(pressedFunction != i){
-          execute();
-          pressedFunction = (Functions)i;
-          pressedTime = millis();
-        }
-        break;
+        return (Functions)i;
       }
     }
   }
-  else{
-    execute();
-  }
+  return LENGTH;
+}
+void startExecutingFunction(enum Functions function){
+
+}
+void endExecution(){
+  
 }
 void execute(){
   if(pressedFunction != LENGTH){
